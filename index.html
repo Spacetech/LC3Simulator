@@ -1,0 +1,296 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>LC-3 Simulator</title>
+
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <script src="bootstrap.file-input.js"></script>
+    <script src="jquery-linedtextarea.js"></script>
+    <script src="FileSaver.js"></script>
+
+    <link rel="stylesheet" href="jquery-linedtextarea.css" type="text/css" />
+    <link rel="stylesheet" href="app.css" type="text/css" />
+
+    <script src="app.js"></script>
+    <script src="Operand.js"></script>
+    <script src="CodeLine.js"></script>
+    <script src="Instruction.js"></script>
+    <script src="Program.js"></script>
+    <script src="instructions/ADD.js"></script>
+    <script src="instructions/AND.js"></script>
+    <script src="instructions/BR.js"></script>
+    <script src="instructions/JMP.js"></script>
+    <script src="instructions/JSR.js"></script>
+    <script src="instructions/JSSR.js"></script>
+    <script src="instructions/LD.js"></script>
+    <script src="instructions/LDI.js"></script>
+    <script src="instructions/LDR.js"></script>
+    <script src="instructions/LEA.js"></script>
+    <script src="instructions/NOT.js"></script>
+    <script src="instructions/RET.js"></script>
+    <script src="instructions/ST.js"></script>
+    <script src="instructions/STI.js"></script>
+    <script src="instructions/STR.js"></script>
+    <script src="instructions/TRAP.js"></script>
+    <script src="Instructions.js"></script>
+
+    <script>
+        function ShowDebuggerTab() {
+            $('a[href="#debuggertab"]').tab('show');
+        }
+
+        function ShowSourceCodeTab() {
+            $('a[href="#sourcecodetab"]').tab('show');
+        }
+
+        var saveFilename = "";
+        var sourceCodeToSave;
+
+        function ShowDownloadFileDialog(value) {
+            sourceCodeToSave = value;
+            $('#download-filename').val(saveFilename);
+            $('#download-modal').modal('show');
+        }
+
+        $(document).ready(function () {
+            $(".lined").linedtextarea();
+
+            $('input[type=file]').bootstrapFileInput();
+
+            function handleFileSelect(evt) {
+                var files = evt.target.files;
+                for (var i = 0, f; f = files[i]; i++) {
+                    var reader = new FileReader();
+
+                    saveFilename = escape(f.name);
+
+                    reader.onload = (function (theFile) {
+                        return function (e) {
+                            ProgramLoad(e.target.result);
+                            document.getElementById('files').value = "";
+                        };
+                    })(f);
+                    reader.readAsText(f);
+
+                    break;
+                }
+            }
+
+            document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+            $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+                if ($(e.target).attr("href").indexOf("debuggertab") != -1) {
+                    CheckCompiled();
+                }
+            })
+
+            $('#download-file').on('click', function (e) {
+                $('#download-modal').modal('hide');
+                saveFilename = $('#download-filename').val().trim();
+                if (saveFilename.length > 0) {
+                    if (saveFilename.indexOf(".") == -1) {
+                        saveFilename += ".asm";
+                    }
+                    saveAs(new Blob([sourceCodeToSave], { type: "text/plain;charset=" + document.characterSet }), saveFilename);
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="navbar navbar-default" role="navigation">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">LC-3 Simulator</a>
+                </div>
+                <div class="navbar-collapse collapse">
+                    <ul class="nav navbar-nav">
+                        <li><input type="file" id="files" name="files[]" title="Load File" /></li>
+                        <li><a href="#" id="command-compile">Compile</a></li>
+                        <li><a href="#" id="command-run">Run / Stop</a></li>
+                        <li><a href="#" id="command-step">Step</a></li>
+                        <li><a href="#" id="command-reset">Reset Program</a></li>
+                        <li><a href="#" id="command-clear-log">Clear Log</a></li>
+                        <li><a href="#" id="command-download">Download</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <ul class="nav nav-tabs tabs">
+            <li class="active"><a href="#sourcecodetab" data-toggle="tab">Source Code</a></li>
+            <li><a href="#debuggertab" data-toggle="tab">Debugger</a></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane active" id="sourcecodetab">
+                <textarea id="sourcecode" class="lined" spellcheck="false"></textarea>
+            </div>
+            <div class="tab-pane" id="debuggertab">
+                <div class="alert alert-info" id="message"><strong>Heads up!</strong> You have unsaved changes in your code. Press the <strong>Compile</strong> button to apply the changes.</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="panel panel-default">
+                            <div class="panel-heading panel-heading-no-bottom-border">
+                                <h3 class="panel-title">Code Lines</h3>
+                            </div>
+                            <div class="panel-body panel-body-no-padding">
+                                <table class="table table-hover" id="code"></table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 0</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-0"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 1</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-1"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 2</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-2"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 3</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 4</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-4"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 5</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-5"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 6</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-6"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Register 7</h3>
+                                    </div>
+                                    <div class="panel-body" id="register-7"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">PC</h3>
+                                    </div>
+                                    <div class="panel-body" id="program-counter"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Negative</h3>
+                                    </div>
+                                    <div class="panel-body" id="condition-0"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Zero</h3>
+                                    </div>
+                                    <div class="panel-body" id="condition-1"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <h3 class="panel-title">Positive</h3>
+                                    </div>
+                                    <div class="panel-body" id="condition-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading panel-heading-no-bottom-border">
+                        <h3 class="panel-title">Log</h3>
+                    </div>
+                    <div class="panel-body panel-body-no-padding">
+                        <table class="table table-hover" id="log">
+                            <tbody>
+                                <tr class="success">
+                                    <td>LC-3 Simulator. By Gary Wilber &amp; Joseph Palazzolo</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="download-modal" tabindex="-1" role="dialog" aria-labelledby="downloadModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title" id="downloadModalLabel">Download Source Code</h4>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" class="form-control" id="download-filename" placeholder="Enter filename">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="download-file">Download File</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
