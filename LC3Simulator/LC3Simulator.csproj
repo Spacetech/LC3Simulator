@@ -30,7 +30,7 @@
     <TypeScriptCompile Include="instructions\BR.ts" />
     <TypeScriptCompile Include="instructions\JMP.ts" />
     <TypeScriptCompile Include="instructions\JSR.ts" />
-    <TypeScriptCompile Include="instructions\JSSR.ts" />
+    <TypeScriptCompile Include="instructions\JSRR.ts" />
     <TypeScriptCompile Include="instructions\LD.ts" />
     <TypeScriptCompile Include="instructions\LDI.ts" />
     <TypeScriptCompile Include="instructions\LDR.ts" />
