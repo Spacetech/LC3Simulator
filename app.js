@@ -70,7 +70,7 @@ window.onload = function () {
 
     program = new Program();
 
-    ProgramLoad(".ORIG x3000\nLD R2, A\nLOOP: ADD R2, R2, #31\nBR LOOP\nHALT\nA .FILL x5\n.END");
+    ProgramLoad(".ORIG x3000\nLD R2, NUM\nAND R3, R3, #0\nAND R5, R5, #0\nLOOP ADD R4, R2, #-2\nBRz DONE\nADD R3, R3, R5\nADD R5, R5, #1\nADD R2, R2, #-1\nBRp LOOP\nDONE HALT\nNUM .FILL 10\n.END");
 
     document.getElementById("command-compile").onclick = function (event) {
         event.preventDefault();

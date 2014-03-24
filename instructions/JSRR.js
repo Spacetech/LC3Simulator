@@ -4,30 +4,30 @@
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-var JSSR = (function (_super) {
-    __extends(JSSR, _super);
-    function JSSR() {
+var JSRR = (function (_super) {
+    __extends(JSRR, _super);
+    function JSRR() {
         _super.apply(this, arguments);
     }
-    JSSR.prototype.getName = function () {
-        return "JSSR";
+    JSRR.prototype.getName = function () {
+        return "JSRR";
     };
 
-    JSSR.prototype.getOperandCount = function () {
+    JSRR.prototype.getOperandCount = function () {
         return 1;
     };
 
-    JSSR.prototype.getInstructionBits = function (operands) {
+    JSRR.prototype.getInstructionBits = function (operands) {
         return "0100000" + Program.toBinaryPadded(operands[0].getRegisterNumber(), 3) + "000000";
     };
 
-    JSSR.prototype.areValidOperands = function (operands) {
+    JSRR.prototype.areValidOperands = function (operands) {
         return operands[0].isRegisterNumber();
     };
 
-    JSSR.prototype.execute = function (program, operands) {
+    JSRR.prototype.execute = function (program, operands) {
         program.setRegister(7, program.getProgramCounter());
         program.setProgramCounter(program.getRegister(operands[0].getRegisterNumber()));
     };
-    return JSSR;
+    return JSRR;
 })(Instruction);

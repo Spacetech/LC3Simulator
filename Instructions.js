@@ -14,7 +14,7 @@
         "BR": new BR(),
         "JMP": new JMP(),
         "JSR": new JSR(),
-        "JSSR": new JSSR(),
+        "JSRR": new JSRR(),
         "LD": new LD(),
         "LDI": new LDI(),
         "LDR": new LDR(),
