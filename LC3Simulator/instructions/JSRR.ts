@@ -1,7 +1,7 @@
-﻿class JSSR extends Instruction {
+﻿class JSRR extends Instruction {
 
     getName() {
-        return "JSSR";
+        return "JSRR";
     }
 
     getOperandCount() {
