@@ -336,20 +336,20 @@
         for (var s = 0; s < 2; s++) {
             var symbols = s == 0;
 
+            var count = 0;
+
             for (var i = 1; i < lines.length; i++) {
                 var lineTrim = lines[i].trim();
 
-                if (lineTrim.length == 0) {
+                if (lineTrim.length == 0 || lineTrim.charAt(0) == ";") {
                     continue;
                 }
 
-                if (lineTrim.charAt(0) == ";") {
-                    continue;
-                }
+                count++;
 
                 var lineSplit = lineTrim.split(" ");
                 var opCode = lineSplit[0];
-                var address = this.origAddress + i - 1;
+                var address = this.origAddress + count - 1;
 
                 if (opCode == ".END") {
                     if (!symbols) {
