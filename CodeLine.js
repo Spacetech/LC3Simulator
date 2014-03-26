@@ -4,6 +4,7 @@
         this.operands = operands;
         this.address = address;
         this.data = data;
+        this.row = null;
     }
     CodeLine.prototype.getInstruction = function () {
         return this.instruction;
@@ -34,6 +35,14 @@
 
     CodeLine.prototype.setInstructionBits = function (data) {
         this.data = data;
+    };
+
+    CodeLine.prototype.getRow = function () {
+        return this.row;
+    };
+
+    CodeLine.prototype.setRow = function (row) {
+        this.row = row;
     };
 
     CodeLine.prototype.execute = function (program, operands) {
