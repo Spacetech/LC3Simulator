@@ -1,5 +1,7 @@
 ﻿class CodeLine {
 
+    private row: HTMLTableRowElement = null;
+
     constructor(private instruction: Instruction, private operands: Operand[], private address: number, private data: number) { }
 
     getInstruction() {
@@ -31,6 +33,14 @@
 
     setInstructionBits(data: number) {
         this.data = data;
+    }
+
+    getRow() {
+        return this.row;
+    }
+
+    setRow(row: HTMLTableRowElement) {
+        this.row = row;
     }
 
     execute(program: Program, operands: Operand[]) {

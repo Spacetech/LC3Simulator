@@ -203,6 +203,7 @@
 
     setInstructionBits(address: number, data: number) {
         this.code[address].setInstructionBits(data);
+        this.updateCodeTableRow(this.code[address]);
     }
 
     isConditionNegativeSet() {
@@ -335,8 +336,7 @@
 
         for (var s = 0; s < 2; s++) {
             var symbols = s == 0;
-
-            var count = 0;
+            var address = this.origAddress;
 
             for (var i = 1; i < lines.length; i++) {
                 var lineTrim = lines[i].trim();
@@ -345,11 +345,9 @@
                     continue;
                 }
 
-                count++;
-
                 var lineSplit = lineTrim.split(" ");
                 var opCode = lineSplit[0];
-                var address = this.origAddress + count - 1;
+
 
                 if (opCode == ".END") {
                     if (!symbols) {
@@ -424,34 +422,29 @@
                 this.setLabel(opCode, address);
 
                 if (lineSplit.length >= 3) {
-                    var num = lineSplit[2];
-                    var radix = 10;
-
-                    if (num.charAt(0) == "X") {
-                        radix = 16;
-                        num = "0" + num;
-                    }
-                    else if (num.length > 2 && num.charAt(0) == "0" && num.charAt(1) == "X") {
-                        radix = 16;
-                    }
 
                     if (lineSplit[1] == ".FILL") {
-                        var data = parseInt(num, radix);
-                        //this.log("Data " + data);
-                        this.setCodeLine(null, null, address, data);
+                        this.setCodeLine(null, null, address, Program.toNumber(lineSplit[2]));
                     }
                     else if (lineSplit[1] == ".BLKW") {
-                        address += parseInt(num, radix);
+                        var len = Program.toNumber(lineSplit[2]);
+
+                        if (len <= 0) {
+                            throw "invalid BLKW length '" + len + "'";
+                        }
+
+                        for (var i = 0; i < len; i++) {
+                            this.setCodeLine(null, null, address + i, 0);
+                        }
+
+                        return address + len;
                     }
                     else if (lineSplit[1] == ".STRINGZ") {
-                        address += lineSplit[2].length;
-                    }
-                    else {
-                        //throw "undefined label directive '" + lineSplit[1] + "'";
+                        var len = lineSplit[2].length;
+
+                        return address + len + 1;
                     }
                 }
-
-                //throw "floating label '" + opCode + "'";
             }
 
             return address + 1;
@@ -469,21 +462,32 @@
 
                 if (!Instructions.isInstruction(opCode)) {
                     if (opCode == ".FILL") {
+                        this.updateCodeTableRow(this.code[address]);
 
+                        return address + 1;
                     }
                     else if (lineSplit[1] == ".BLKW") {
-                        address += parseInt(lineSplit[2]);
+                        var len = Program.toNumber(lineSplit[2]);
+
+                        for (var i = 0; i < len; i++) {
+                            this.updateCodeTableRow(this.code[address + i]);
+                        }
+
+                        return address + len;
                     }
                     else if (lineSplit[1] == ".STRINGZ") {
-                        address += lineSplit[2].length;
-                    }
-                    else {
-                        throw "invalid label directive '" + lineSplit[1] + "'";
+                        var len = lineSplit[2].length;
+
+                        for (var i = 0; i < len; i++) {
+                            this.updateCodeTableRow(this.code[address + i]);
+                        }
+
+                        this.updateCodeTableRow(this.code[address + len]);
+
+                        return address + len + 1;
                     }
 
-                    this.addCodeTableRow(this.code[address]);
-
-                    return address + 1;
+                    throw "invalid label directive '" + lineSplit[1] + "'";
                 }
             }
         }
@@ -527,7 +531,7 @@
         }
 
         this.setCodeLine(instruction, operands, address, null);
-        this.addCodeTableRow(this.code[address]);
+        this.updateCodeTableRow(this.code[address]);
 
         //this.log("Instruction " + opCode + " @ 0x" + address.toString(16));
 
@@ -575,14 +579,34 @@
         cell.colSpan = 6;
     }
 
-    addCodeTableRow(codeLine: CodeLine) {
-        var row = <HTMLTableRowElement>this.codeElement.insertRow(this.codeElement.rows.length);
-        var cell0 = row.insertCell(0);
-        var cell1 = row.insertCell(1);
-        var cell2 = row.insertCell(2);
-        var cell3 = row.insertCell(3);
-        var cell4 = row.insertCell(4);
-        var cell5 = row.insertCell(5);
+    updateCodeTableRow(codeLine: CodeLine) {
+
+        if (codeLine === undefined) {
+            return;
+        }
+
+        var row = codeLine.getRow();
+        var cell0, cell1, cell2, cell3, cell4, cell5;
+
+        if (row == null) {
+            row = <HTMLTableRowElement>this.codeElement.insertRow(this.codeElement.rows.length);
+            codeLine.setRow(row);
+
+            cell0 = row.insertCell(0);
+            cell1 = row.insertCell(1);
+            cell2 = row.insertCell(2);
+            cell3 = row.insertCell(3);
+            cell4 = row.insertCell(4);
+            cell5 = row.insertCell(5);
+        }
+        else {
+            cell0 = row.cells[0];
+            cell1 = row.cells[1];
+            cell2 = row.cells[2];
+            cell3 = row.cells[3];
+            cell4 = row.cells[4];
+            cell5 = row.cells[5];
+        }
 
         var address = codeLine.getAddress();
         var instruction = codeLine.getInstruction();
@@ -677,5 +701,19 @@
         }
         var zeros = Array(padding - temp.length + 1).join("0");
         return zeros + temp;
+    }
+
+    static toNumber(num: string) {
+        var radix = 10;
+
+        if (num.charAt(0) == "X") {
+            radix = 16;
+            num = "0" + num;
+        }
+        else if (num.length > 2 && num.charAt(0) == "0" && num.charAt(1) == "X") {
+            radix = 16;
+        }
+
+        return parseInt(num, radix);
     }
 }
