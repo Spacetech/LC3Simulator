@@ -26,7 +26,7 @@ var NOT = (function (_super) {
     };
 
     NOT.prototype.execute = function (program, operands) {
-        program.setRegister(operands[0].getRegisterNumber(), -(program.getRegister(operands[1].getRegisterNumber())));
+        program.setRegister(operands[0].getRegisterNumber(), -program.getRegister(operands[1].getRegisterNumber()) - 1);
     };
     return NOT;
 })(Instruction);
