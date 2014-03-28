@@ -12,6 +12,8 @@
     private reachedHalt: boolean;
     private interval: number;
 
+    private lastCode: string;
+
     private codeElement: HTMLTableElement;
     private logElement: HTMLTableElement;
     private programCounterElement: HTMLElement;
@@ -26,6 +28,8 @@
 
     constructor() {
         this.interval = null;
+        this.lastCode = null;
+
         this.codeElement = <HTMLTableElement>document.getElementById("code");
         this.logElement = <HTMLTableElement>document.getElementById("log");
         this.programCounterElement = document.getElementById("program-counter");
@@ -240,11 +244,20 @@
             this.setRegister(i, undefined);
         }
 
+        for (var i = this.codeElement.rows.length - 1; i >= 0; i--) {
+            this.codeElement.deleteRow(i);
+        }
+
         if (resetCode) {
-            for (var i = this.codeElement.rows.length - 1; i >= 0; i--) {
-                this.codeElement.deleteRow(i);
-            }
             this.addCodeTableFullRow("Click Load File to get started.");
+        }
+        else if (this.lastCode !== null) {
+            try {
+                this.open(this.lastCode);
+            }
+            catch (ex) {
+                this.lastCode = null;
+            }
         }
     }
 
@@ -310,6 +323,8 @@
     }
 
     open(str: string) {
+        this.lastCode = str;
+
         //this.log("Loading source code", Program.LOG_INFO);
 
         this.code = new Array(this.memory);
@@ -328,7 +343,9 @@
             throw "Expected first line to contain .ORIG";
         }
 
-        this.codeElement.deleteRow(0);
+        if (this.codeElement.rows.length > 0) {
+            this.codeElement.deleteRow(0);
+        }
 
         this.origAddress = parseInt("0" + origSplit[1], 16);
 

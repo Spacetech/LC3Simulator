@@ -9,7 +9,7 @@
     }
 
     getInstructionBits(operands: Operand[]) {
-        return "0110" + Program.toBinaryPadded(operands[0].getRegisterNumber(), 3) + Program.toBinaryPadded(operands[1].getRegisterNumber(), 3)  + Program.toBinaryPadded(operands[2].getImmediate(), 6);
+        return "0110" + Program.toBinaryPadded(operands[0].getRegisterNumber(), 3) + Program.toBinaryPadded(operands[1].getRegisterNumber(), 3) + Program.toBinaryPadded(operands[2].getImmediate(), 6);
     }
 
     areValidOperands(operands: Operand[]) {
@@ -21,4 +21,3 @@
     }
 
 }
- 
