@@ -8,6 +8,8 @@
         this.registersElements = new Array(8);
         this.conditionElements = new Array(3);
         this.interval = null;
+        this.lastCode = null;
+
         this.codeElement = document.getElementById("code");
         this.logElement = document.getElementById("log");
         this.programCounterElement = document.getElementById("program-counter");
@@ -218,11 +220,18 @@
             this.setRegister(i, undefined);
         }
 
+        for (var i = this.codeElement.rows.length - 1; i >= 0; i--) {
+            this.codeElement.deleteRow(i);
+        }
+
         if (resetCode) {
-            for (var i = this.codeElement.rows.length - 1; i >= 0; i--) {
-                this.codeElement.deleteRow(i);
-            }
             this.addCodeTableFullRow("Click Load File to get started.");
+        } else if (this.lastCode !== null) {
+            try  {
+                this.open(this.lastCode);
+            } catch (ex) {
+                this.lastCode = null;
+            }
         }
     };
 
@@ -287,6 +296,8 @@
     };
 
     Program.prototype.open = function (str) {
+        this.lastCode = str;
+
         this.code = new Array(this.memory);
         this.labels = {};
 
@@ -303,7 +314,9 @@
             throw "Expected first line to contain .ORIG";
         }
 
-        this.codeElement.deleteRow(0);
+        if (this.codeElement.rows.length > 0) {
+            this.codeElement.deleteRow(0);
+        }
 
         this.origAddress = parseInt("0" + origSplit[1], 16);
 
