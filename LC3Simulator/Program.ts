@@ -337,6 +337,7 @@
         for (var s = 0; s < 2; s++) {
             var symbols = s == 0;
             var address = this.origAddress;
+            var lastWasLabel = false;
 
             for (var i = 1; i < lines.length; i++) {
                 var lineTrim = lines[i].trim();
@@ -356,7 +357,9 @@
                 }
 
                 try {
-                    address = this.parseLine(lineTrim, lineSplit, opCode, address, symbols);
+                    var currentAddress = address;
+                    address = this.parseLine(lineTrim, lineSplit, opCode, address, symbols, lastWasLabel);
+                    lastWasLabel = currentAddress === address;
                 }
                 catch (ex) {
                     throw "line " + (i + 1) + ": " + ex;
@@ -374,7 +377,7 @@
         //this.log("Loaded source code", Program.LOG_SUCCESS);
     }
 
-    parseLine(lineTrim: string, lineSplit: string[], opCode: string, address: number, symbols: boolean) {
+    parseLine(lineTrim: string, lineSplit: string[], opCode: string, address: number, symbols: boolean, lastWasLabel: boolean) {
 
         var isBranch = false; // he's special
         var operands = [];
@@ -384,32 +387,13 @@
         }
         else if (opCode.length >= 2 && opCode.substr(0, 2) == "BR") {
             isBranch = true;
-
-            if (!symbols) {
-                var remaining = opCode.substr(2);
-
-                for (var i = 0; i < remaining.length; i++) {
-                    if (remaining[i] != "N" && remaining[i] != "Z" && remaining[i] != "P") {
-                        throw "invalid branch instruction, unknown character '" + remaining[i] + "'";
-                    }
-                }
-
-                if (remaining.indexOf("N") != remaining.lastIndexOf("N") || remaining.indexOf("Z") != remaining.lastIndexOf("Z") || remaining.indexOf("P") != remaining.lastIndexOf("P")) {
-                    throw "invalid branch instruction, double condition detected";
-                }
-
-                operands.push(new Operand(program, "#" + (remaining.indexOf("N") != -1 ? "1" : "0"), address));
-                operands.push(new Operand(program, "#" + (remaining.indexOf("Z") != -1 ? "1" : "0"), address));
-                operands.push(new Operand(program, "#" + (remaining.indexOf("P") != -1 ? "1" : "0"), address));
-            }
         }
-
-        if (opCode === "HALT") {
+        else if (opCode === "HALT") {
             opCode = "TRAP";
             operands.push(new Operand(program, "X25", address));
         }
 
-        if (!Instructions.isInstruction(opCode) && !isBranch) {
+        if (!Instructions.isInstruction(opCode) && !isBranch && !lastWasLabel) {
 
             // let's assume it's a label.
             if (symbols) {
@@ -428,6 +412,7 @@
 
                 if (lineSplit[1] == ".FILL") {
                     symbols ? this.setCodeLine(null, null, address, Program.toNumber(lineSplit[2])) : this.updateCodeTableRow(this.code[address]);
+                    return address + 1;
                 }
                 else if (lineSplit[1] == ".BLKW") {
                     var len = Program.toNumber(lineSplit[2]);
@@ -452,7 +437,7 @@
                     symbols ? this.setCodeLine(null, null, address + len, 0) : this.updateCodeTableRow(this.code[address + len]);
 
                     return address + len + 1;
-                }                
+                }
             }
         }
 
@@ -465,7 +450,10 @@
                 lineTrim = lineTrim.substr(opCode.length + 2);
                 opCode = lineSplit[1];
 
-                if (opCode === "HALT") {
+                if (opCode.length >= 2 && opCode.substr(0, 2) == "BR") {
+                    isBranch = true;
+                }
+                else if (opCode === "HALT") {
                     opCode = "TRAP";
                     operands.push(new Operand(program, "X25", address));
                 }
@@ -473,8 +461,26 @@
         }
 
         if (!Instructions.isInstruction(opCode) && !isBranch) {
-            //throw "invalid instruction '" + opCode + "'";
+            throw "invalid instruction '" + opCode + "'";
             return address + 1;
+        }
+
+        if (isBranch) {
+            var remaining = opCode.substr(2);
+
+            for (var i = 0; i < remaining.length; i++) {
+                if (remaining[i] != "N" && remaining[i] != "Z" && remaining[i] != "P") {
+                    throw "invalid branch instruction, unknown character '" + remaining[i] + "'";
+                }
+            }
+
+            if (remaining.indexOf("N") != remaining.lastIndexOf("N") || remaining.indexOf("Z") != remaining.lastIndexOf("Z") || remaining.indexOf("P") != remaining.lastIndexOf("P")) {
+                throw "invalid branch instruction, double condition detected";
+            }
+
+            operands.push(new Operand(program, "#" + (remaining.indexOf("N") != -1 ? "1" : "0"), address));
+            operands.push(new Operand(program, "#" + (remaining.indexOf("Z") != -1 ? "1" : "0"), address));
+            operands.push(new Operand(program, "#" + (remaining.indexOf("P") != -1 ? "1" : "0"), address));
         }
 
         //this.log("Instruction " + opCode);
