@@ -348,7 +348,6 @@
                 var lineSplit = lineTrim.split(" ");
                 var opCode = lineSplit[0];
 
-
                 if (opCode == ".END") {
                     if (!symbols) {
                         foundEnd = true;
@@ -385,6 +384,7 @@
         }
         else if (opCode.length >= 2 && opCode.substr(0, 2) == "BR") {
             isBranch = true;
+
             if (!symbols) {
                 var remaining = opCode.substr(2);
 
@@ -409,44 +409,54 @@
             operands.push(new Operand(program, "X25", address));
         }
 
-        if (symbols) {
-            if (!Instructions.isInstruction(opCode) && !isBranch) {
+        if (!Instructions.isInstruction(opCode) && !isBranch) {
 
-                // we are probably a label
-                //this.log("Label " + opCode);
-
+            // let's assume it's a label.
+            if (symbols) {
                 if (this.isLabel(opCode)) {
                     throw "a label with the name " + opCode + " already exists";
                 }
-
                 this.setLabel(opCode, address);
-
-                if (lineSplit.length >= 3) {
-
-                    if (lineSplit[1] == ".FILL") {
-                        this.setCodeLine(null, null, address, Program.toNumber(lineSplit[2]));
-                    }
-                    else if (lineSplit[1] == ".BLKW") {
-                        var len = Program.toNumber(lineSplit[2]);
-
-                        if (len <= 0) {
-                            throw "invalid BLKW length '" + len + "'";
-                        }
-
-                        for (var i = 0; i < len; i++) {
-                            this.setCodeLine(null, null, address + i, 0);
-                        }
-
-                        return address + len;
-                    }
-                    else if (lineSplit[1] == ".STRINGZ") {
-                        var len = lineSplit[2].length;
-
-                        return address + len + 1;
-                    }
-                }
             }
 
+            if (lineSplit.length == 1) {
+                // label on a line by itself
+                return address;
+            }
+
+            if (lineSplit.length >= 3) {
+
+                if (lineSplit[1] == ".FILL") {
+                    symbols ? this.setCodeLine(null, null, address, Program.toNumber(lineSplit[2])) : this.updateCodeTableRow(this.code[address]);
+                }
+                else if (lineSplit[1] == ".BLKW") {
+                    var len = Program.toNumber(lineSplit[2]);
+
+                    if (len <= 0) {
+                        throw "invalid BLKW length '" + len + "'";
+                    }
+
+                    for (var i = 0; i < len; i++) {
+                        symbols ? this.setCodeLine(null, null, address + i, 0) : this.updateCodeTableRow(this.code[address + i]);
+                    }
+
+                    return address + len;
+                }
+                else if (lineSplit[1] == ".STRINGZ") {
+                    var len = lineSplit[2].length;
+
+                    for (var i = 0; i < len; i++) {
+                        symbols ? this.setCodeLine(null, null, address + i, lineSplit[2].charCodeAt(i)) : this.updateCodeTableRow(this.code[address + i]);
+                    }
+
+                    symbols ? this.setCodeLine(null, null, address + len, 0) : this.updateCodeTableRow(this.code[address + len]);
+
+                    return address + len + 1;
+                }                
+            }
+        }
+
+        if (symbols) {
             return address + 1;
         }
 
@@ -459,41 +469,12 @@
                     opCode = "TRAP";
                     operands.push(new Operand(program, "X25", address));
                 }
-
-                if (!Instructions.isInstruction(opCode)) {
-                    if (opCode == ".FILL") {
-                        this.updateCodeTableRow(this.code[address]);
-
-                        return address + 1;
-                    }
-                    else if (lineSplit[1] == ".BLKW") {
-                        var len = Program.toNumber(lineSplit[2]);
-
-                        for (var i = 0; i < len; i++) {
-                            this.updateCodeTableRow(this.code[address + i]);
-                        }
-
-                        return address + len;
-                    }
-                    else if (lineSplit[1] == ".STRINGZ") {
-                        var len = lineSplit[2].length;
-
-                        for (var i = 0; i < len; i++) {
-                            this.updateCodeTableRow(this.code[address + i]);
-                        }
-
-                        this.updateCodeTableRow(this.code[address + len]);
-
-                        return address + len + 1;
-                    }
-
-                    throw "invalid label directive '" + lineSplit[1] + "'";
-                }
             }
         }
 
         if (!Instructions.isInstruction(opCode) && !isBranch) {
-            throw "invalid instruction '" + opCode + "'";
+            //throw "invalid instruction '" + opCode + "'";
+            return address + 1;
         }
 
         //this.log("Instruction " + opCode);
@@ -518,7 +499,6 @@
 
         for (var j = 0; j < operandSplit.length; j++) {
             var arg = operandSplit[j].trim();
-            //this.log(arg);
             operands.push(new Operand(this, arg, address));
         }
 
@@ -533,7 +513,7 @@
         this.setCodeLine(instruction, operands, address, null);
         this.updateCodeTableRow(this.code[address]);
 
-        //this.log("Instruction " + opCode + " @ 0x" + address.toString(16));
+        //this.log("Instruction " + opCode + " @ 0x" + Program.toHex(address));
 
         return address + 1;
     }
