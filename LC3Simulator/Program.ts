@@ -360,7 +360,16 @@
                     address = this.parseLine(lineTrim, lineSplit, opCode, address, symbols);
                 }
                 catch (ex) {
-                    throw "line " + (i + 1) + ": " + ex;
+                    lineTrim = lines[i].trim() + " " + lines[i + 1].trim();
+                    lineSplit = lineTrim.split(" ");
+                    opCode = lineSplit[0];
+                    try {
+                        address = this.parseLine(lineTrim, lineSplit, opCode, address, symbols);
+                        i++;
+                    }
+                    catch (ex) {
+                        throw "line " + (i + 1) + ": " + ex;
+                    }
                 }
 
             }
