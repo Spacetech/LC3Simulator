@@ -1,7 +1,6 @@
 ﻿var Program = (function () {
     function Program() {
-        this.memory = Math.pow(2, 16);
-        this.code = new Array(this.memory);
+        this.code = new Array(Program.memory);
         this.labels = {};
         this.registers = new Array(8);
         this.conditions = new Array(3);
@@ -104,7 +103,7 @@
             throw "tried to access invalid register '" + index + "'";
         }
 
-        if (value >= this.memory || value < -this.memory) {
+        if (value >= Program.memory_signed || value < -Program.memory_signed) {
             throw "register '" + index + "' overflowed";
         }
 
@@ -117,7 +116,14 @@
             this.setCondition(1, value == 0);
             this.setCondition(2, value > 0);
 
-            this.registersElements[index].innerHTML = "<h2>" + value + "</h2><h4>" + Program.toHex(value) + "</h4>";
+            var hexValue;
+            if (value < 0) {
+                hexValue = Program.toHex(value + Program.memory);
+            } else {
+                hexValue = Program.toHex(value);
+            }
+
+            this.registersElements[index].innerHTML = "<h2>" + value + "</h2><h4>" + hexValue + "</h4>";
         }
     };
 
@@ -164,8 +170,14 @@
         this.labels[name] = address;
     };
 
-    Program.prototype.getInstructionBits = function (address) {
-        return parseInt(this.getInstructionBitsBinary(address), 2);
+    Program.prototype.getInstructionBits = function (address, raw) {
+        if (typeof raw === "undefined") { raw = false; }
+        var bits = this.getInstructionBitsBinary(address);
+        if (!raw && bits.charAt(0) === "1") {
+            console.log(bits, parseInt(bits, 2), parseInt(bits.substr(1, bits.length - 1), 2));
+            return parseInt(bits, 2) - Program.memory;
+        }
+        return parseInt(bits, 2);
     };
 
     Program.prototype.getInstructionBitsBinary = function (address) {
@@ -173,11 +185,11 @@
     };
 
     Program.prototype.getInstructionBitsHex = function (address) {
-        return Program.toHex(this.getInstructionBits(address));
+        return Program.toHex(this.getInstructionBits(address, true));
     };
 
     Program.prototype.getInstructionBitsHexPadded = function (address, padding) {
-        return Program.toHexPadded(this.getInstructionBits(address), padding);
+        return Program.toHexPadded(this.getInstructionBits(address, true), padding);
     };
 
     Program.prototype.setInstructionBits = function (address, data) {
@@ -298,7 +310,7 @@
     Program.prototype.open = function (str) {
         this.lastCode = str;
 
-        this.code = new Array(this.memory);
+        this.code = new Array(Program.memory);
         this.labels = {};
 
         var lines = str.toUpperCase().split("\n");
@@ -388,7 +400,11 @@
 
             if (lineSplit.length >= 3) {
                 if (lineSplit[1] == ".FILL") {
-                    symbols ? this.setCodeLine(null, null, address, Program.toNumber(lineSplit[2])) : this.updateCodeTableRow(this.code[address]);
+                    var num = Program.toNumber(lineSplit[2]);
+                    if (num >= Program.memory || num < -Program.memory_signed) {
+                        throw "'" + num + "' can not be represented as an unsigned number in 16bits";
+                    }
+                    symbols ? this.setCodeLine(null, null, address, num) : this.updateCodeTableRow(this.code[address]);
                     return address + 1;
                 } else if (lineSplit[1] == ".BLKW") {
                     var len = Program.toNumber(lineSplit[2]);
@@ -664,6 +680,9 @@
 
         return parseInt(num, radix);
     };
+    Program.memory = Math.pow(2, 16);
+    Program.memory_signed = Math.pow(2, 15);
+
     Program.LOG_NORMAL = 0;
     Program.LOG_INFO = 1;
     Program.LOG_SUCCESS = 2;
