@@ -174,7 +174,6 @@
         if (typeof raw === "undefined") { raw = false; }
         var bits = this.getInstructionBitsBinary(address);
         if (!raw && bits.charAt(0) === "1") {
-            console.log(bits, parseInt(bits, 2), parseInt(bits.substr(1, bits.length - 1), 2));
             return parseInt(bits, 2) - Program.memory;
         }
         return parseInt(bits, 2);
@@ -320,7 +319,7 @@
         }
 
         var origLine = lines[0].trim();
-        var origSplit = origLine.split(" ");
+        var origSplit = origLine.split(/\s+/);
 
         if (origSplit.length != 2 || origSplit[0] != ".ORIG") {
             throw "Expected first line to contain .ORIG";
@@ -346,7 +345,12 @@
                     continue;
                 }
 
-                var lineSplit = lineTrim.split(" ");
+                var commentStart = lineTrim.indexOf(";");
+                if (commentStart > 0) {
+                    lineTrim = lineTrim.substring(0, commentStart);
+                }
+
+                var lineSplit = lineTrim.split(/\s+/);
                 var opCode = lineSplit[0];
 
                 if (opCode == ".END") {
