@@ -19,7 +19,7 @@ var AND = (function (_super) {
 
     AND.prototype.getInstructionBits = function (operands) {
         if (operands[2].isRegisterNumber()) {
-            return "0101" + Program.toBinaryPadded(operands[0].getRegisterNumber(), 3) + Program.toBinaryPadded(operands[1].getRegisterNumber(), 3) + "000" + +Program.toBinaryPadded(operands[2].getRegisterNumber(), 3);
+            return "0101" + Program.toBinaryPadded(operands[0].getRegisterNumber(), 3) + Program.toBinaryPadded(operands[1].getRegisterNumber(), 3) + "000" + Program.toBinaryPadded(operands[2].getRegisterNumber(), 3);
         }
         return "0101" + Program.toBinaryPadded(operands[0].getRegisterNumber(), 3) + Program.toBinaryPadded(operands[1].getRegisterNumber(), 3) + "1" + Program.toBinaryPadded(operands[2].getImmediate(), 5);
     };
