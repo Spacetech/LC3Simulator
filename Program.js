@@ -127,6 +127,14 @@
         }
     };
 
+	
+	
+	Program.prototype.addToConsole = function (value) {
+        var consoleElement = document.getElementById("console-1");
+		var c = consoleElement.innerHTML + String.fromCharCode(value);
+		consoleElement.innerHTML = c;
+	}
+	
     Program.prototype.setCondition = function (index, value) {
         this.conditions[index] = value;
 
@@ -218,6 +226,9 @@
     };
 
     Program.prototype.reset = function (resetCode) {
+        var consoleElement = document.getElementById("console-1");
+		consoleElement.innerHTML = "";
+		
         if (typeof resetCode === "undefined") { resetCode = true; }
         this.stopInterval();
         this.setHalted(false, false);
@@ -313,6 +324,7 @@
         this.labels = {};
 
         var lines = str.toUpperCase().split("\n");
+        var origlines = str.split("\n");
 
         if (lines.length == 0) {
             throw "Program file is empty";
@@ -340,6 +352,7 @@
 
             for (var i = 1; i < lines.length; i++) {
                 var lineTrim = lines[i].trim();
+                var origTrim = origlines[i].trim();
 
                 if (lineTrim.length == 0 || lineTrim.charAt(0) == ";") {
                     continue;
@@ -351,6 +364,8 @@
                 }
 
                 var lineSplit = lineTrim.split(/\s+/);
+				var origSplit = origTrim.split(/\s+/);
+				
                 var opCode = lineSplit[0];
 
                 if (opCode == ".END") {
@@ -362,7 +377,7 @@
 
                 try  {
                     var currentAddress = address;
-                    address = this.parseLine(lineTrim, lineSplit, opCode, address, symbols, lastWasLabel);
+                    address = this.parseLine(lineTrim, lineSplit, opCode, address, symbols, lastWasLabel, origTrim, origSplit);
                     lastWasLabel = currentAddress === address;
                 } catch (ex) {
                     throw "line " + (i + 1) + ": " + ex;
@@ -377,7 +392,7 @@
         this.setProgramCounter(this.origAddress);
     };
 
-    Program.prototype.parseLine = function (lineTrim, lineSplit, opCode, address, symbols, lastWasLabel) {
+    Program.prototype.parseLine = function (lineTrim, lineSplit, opCode, address, symbols, lastWasLabel, origTrim, origSplit) {
         var isBranch = false;
         var operands = [];
 
@@ -388,6 +403,9 @@
         } else if (opCode === "HALT") {
             opCode = "TRAP";
             operands.push(new Operand(program, "X25", address));
+        } else if (opCode === "OUT") {
+            opCode = "TRAP";
+            operands.push(new Operand(program, "X21", address));
         }
 
         if (!Instructions.isInstruction(opCode) && !isBranch && !lastWasLabel) {
@@ -423,6 +441,9 @@
 
                     return address + len;
                 } else if (lineSplit[1] == ".STRINGZ") {
+					lineSplit[2] = origSplit[2].substring(1,origSplit[2].length-1);
+					lineSplit[2] = lineSplit[2].replace("\\n", '\n').replace("\\N", '\n');
+
                     var len = lineSplit[2].length;
 
                     for (var i = 0; i < len; i++) {
@@ -450,6 +471,9 @@
                 } else if (opCode === "HALT") {
                     opCode = "TRAP";
                     operands.push(new Operand(program, "X25", address));
+                } else if (opCode === "OUT") {
+                    opCode = "TRAP";
+                    operands.push(new Operand(program, "X21", address));
                 }
             }
         }
@@ -620,7 +644,11 @@
                 } else if (operand.isImmediate()) {
                     if (instructionName === "TRAP") {
                         switch (operand.getImmediate()) {
-                            case 37:
+                            case 33:
+                                html += "OUT";
+                                break;
+
+							case 37:
                                 html += "HALT";
                                 break;
 

@@ -29,6 +29,9 @@ var TRAP = (function (_super) {
         if (operands[0].getImmediate() == 37) {
             program.setHalted(true, true);
         }
+        if (operands[0].getImmediate() == 33) {
+			program.addToConsole(program.getRegister(0));
+        }
     };
     return TRAP;
 })(Instruction);
